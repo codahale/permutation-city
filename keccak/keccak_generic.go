@@ -5,8 +5,8 @@
 package keccak
 
 import (
+	"encoding/binary"
 	"math/bits"
-	"unsafe"
 )
 
 // rc stores the round constants for use in the ι step.
@@ -42,7 +42,10 @@ var rc = [24]uint64{ //nolint:gochecknoglobals // constants are static
 //nolint:funlen // it's just big
 //goland:noinspection DuplicatedCode
 func f1600Generic(da *[200]byte, rounds int) {
-	a := (*[25]uint64)(unsafe.Pointer(da))
+	var a [25]uint64
+	for i := range a {
+		a[i] = binary.LittleEndian.Uint64(da[i*8:])
+	}
 
 	// Implementation translated from Keccak-inplace.c
 	// in the keccak reference code.
@@ -417,5 +420,9 @@ func f1600Generic(da *[200]byte, rounds int) {
 		a[22] = bc2 ^ (bc4 &^ bc3)
 		a[23] = bc3 ^ (bc0 &^ bc4)
 		a[24] = bc4 ^ (bc1 &^ bc0)
+	}
+
+	for i := range a {
+		binary.LittleEndian.PutUint64(da[i*8:], a[i])
 	}
 }
