@@ -6,30 +6,25 @@
 
 #define KECCAK_ROUND(S, D, RC) \
 	/* Prepare round */ \
-	MOVQ BP, BX; \
-	ROLQ $0x01, BX; \
+	RORXQ $63, BP, BX; \
 	MOVQ 16(S), R12; \
 	XORQ 56(S), DX; \
 	XORQ R15, BX; \
 	XORQ 96(S), R12; \
 	XORQ 136(S), DX; \
 	XORQ DX, R12; \
-	MOVQ R12, CX; \
-	ROLQ $0x01, CX; \
+	RORXQ $63, R12, CX; \
 	MOVQ 24(S), R13; \
 	XORQ 64(S), R8; \
 	XORQ SI, CX; \
 	XORQ 104(S), R13; \
 	XORQ 144(S), R8; \
 	XORQ R8, R13; \
-	MOVQ R13, DX; \
-	ROLQ $0x01, DX; \
-	MOVQ R15, R8; \
+	RORXQ $63, R13, DX; \
+	RORXQ $63, R15, R8; \
 	XORQ BP, DX; \
-	ROLQ $0x01, R8; \
-	MOVQ SI, R9; \
 	XORQ R12, R8; \
-	ROLQ $0x01, R9; \
+	RORXQ $63, SI, R9; \
 	\
 	/* Result b */ \
 	MOVQ (S), R10; \
@@ -135,14 +130,13 @@
 	XORQ AX, BP; \
 	XORQ BX, R14; \
 	ROLQ $0x12, R14; \
-	NOTQ R13; \
-	MOVQ R13, AX; \
-	ANDQ R14, AX; \
+	ANDNQ R14, R13, AX; \
 	XORQ R12, AX; \
 	MOVQ AX, 96(D); \
 	MOVQ R14, AX; \
 	ORQ  R10, AX; \
 	XORQ R13, AX; \
+	NOTQ AX; \
 	MOVQ AX, 104(D); \
 	ANDQ R11, R10; \
 	XORQ R14, R10; \
@@ -207,10 +201,8 @@
 	MOVQ R9, 192(D); \
 	ROLQ $0x27, R12; \
 	XORQ R9, R15; \
-	NOTQ R11; \
 	XORQ BX, R13; \
-	MOVQ R11, BX; \
-	ANDQ R12, BX; \
+	ANDNQ R12, R11, BX; \
 	XORQ R10, BX; \
 	MOVQ BX, 160(D); \
 	XORQ BX, SI; \
@@ -218,6 +210,7 @@
 	MOVQ R12, CX; \
 	ORQ  R13, CX; \
 	XORQ R11, CX; \
+	NOTQ CX; \
 	MOVQ CX, 168(D); \
 	XORQ CX, BP; \
 	MOVQ R13, DX; \
