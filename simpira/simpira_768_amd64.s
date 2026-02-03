@@ -1,0 +1,73 @@
+//go:build amd64 && !purego
+
+#include "textflag.h"
+
+// func permute768(state *[96]byte)
+TEXT ·permute768(SB), NOSPLIT, $0
+	MOVQ state+0(FP), DI
+
+	MOVOU 0(DI), X0   // x0
+	MOVOU 16(DI), X1  // x1
+	MOVOU 32(DI), X2  // x2
+	MOVOU 48(DI), X3  // x3
+	MOVOU 64(DI), X4  // x4
+	MOVOU 80(DI), X5  // x5
+
+	PXOR X15, X15     // zero
+	MOVL $1, AX       // c = 1
+	MOVL $6, BX       // b = 6
+
+	// Helper macro for F function
+	// Uses X14, X13 as temps. X15 is zero.
+	// Updates AX (c).
+	// Usage: F_STEP(src, dst)
+#define F_STEP(src, dst) \
+	MOVL AX, DX; \
+	XORL BX, DX; \
+	MOVD DX, X14; \
+	PSHUFD $0, X14, X14; \
+	PXOR ·constInc(SB), X14; \
+	MOVOU src, X13; \
+	AESENC X14, X13; \
+	AESENC X15, X13; \
+	PXOR X13, dst; \
+	INCL AX
+
+	// ROUND_6_STEP: s0..s5 are registers mapped to s[r]..s[r+5]
+	// Op 1: s0 -> s1
+	// Op 2: s2 -> s5
+	// Op 3: s4 -> s3
+#define ROUND_6_STEP(s0, s1, s2, s3, s4, s5) \
+	F_STEP(s0, s1); \
+	F_STEP(s2, s5); \
+	F_STEP(s4, s3)
+
+	// Reg mapping:
+	// REG[0]=X0, REG[1]=X1, REG[2]=X2, REG[3]=X5, REG[4]=X4, REG[5]=X3
+
+	// Unroll 15 rounds
+	ROUND_6_STEP(X0, X1, X2, X5, X4, X3) // Round 0
+	ROUND_6_STEP(X1, X2, X5, X4, X3, X0) // Round 1
+	ROUND_6_STEP(X2, X5, X4, X3, X0, X1) // Round 2
+	ROUND_6_STEP(X5, X4, X3, X0, X1, X2) // Round 3
+	ROUND_6_STEP(X4, X3, X0, X1, X2, X5) // Round 4
+	ROUND_6_STEP(X3, X0, X1, X2, X5, X4) // Round 5
+
+	ROUND_6_STEP(X0, X1, X2, X5, X4, X3) // Round 6
+	ROUND_6_STEP(X1, X2, X5, X4, X3, X0) // Round 7
+	ROUND_6_STEP(X2, X5, X4, X3, X0, X1) // Round 8
+	ROUND_6_STEP(X5, X4, X3, X0, X1, X2) // Round 9
+	ROUND_6_STEP(X4, X3, X0, X1, X2, X5) // Round 10
+	ROUND_6_STEP(X3, X0, X1, X2, X5, X4) // Round 11
+
+	ROUND_6_STEP(X0, X1, X2, X5, X4, X3) // Round 12
+	ROUND_6_STEP(X1, X2, X5, X4, X3, X0) // Round 13
+	ROUND_6_STEP(X2, X5, X4, X3, X0, X1) // Round 14
+
+	MOVOU X0, 0(DI)
+	MOVOU X1, 16(DI)
+	MOVOU X2, 32(DI)
+	MOVOU X3, 48(DI)
+	MOVOU X4, 64(DI)
+	MOVOU X5, 80(DI)
+	RET
