@@ -47,15 +47,6 @@ func TestPermute1024(t *testing.T) {
 	}
 }
 
-func TestPermute1536(t *testing.T) {
-	var state [192]byte
-	Permute1536(&state)
-
-	if got, want := hex.EncodeToString(state[:]), "6a8eb4fbe5176447d2c317efa3f1a847f3353cdbb4923c13e91477f5abdf14892e97ee6a96721f2a2dc2b8166f16f886d66250d12588c92a62df3fecf7047605119fafac8c74a1aab7f2f463277df2c92903671ebd1351e6e2e6c95f6d9827b82b7acef3b626eb684fed1c6435c2716917eda93eb5df312527ca58c726fe45b5e9a57a376a97e5705bf5689c35c106c4e5787efb3d8705be728b07d501c53554f1130d5c1a2ec70014b935923af4cc8715c9c502657d26093d5e931786e5bdbe"; got != want {
-		t.Errorf("Permute1536(0x00) = %s, want = %s", got, want)
-	}
-}
-
 func FuzzPermute256(f *testing.F) {
 	const width = 32
 
@@ -164,34 +155,6 @@ func FuzzPermute1024(f *testing.F) {
 
 		if got, want := state2[:], state1[:]; !bytes.Equal(got, want) {
 			t.Errorf("Permute1024-ASM(%x) = %x, want = %x", data, got, want)
-		}
-	})
-}
-
-func FuzzPermute1536(f *testing.F) {
-	const width = 192
-
-	drbg := sha3.NewSHAKE128()
-	_, _ = drbg.Write([]byte("simpira-1536-v2"))
-	for range 10 {
-		state := make([]byte, width)
-		_, _ = drbg.Read(state)
-		f.Add(state)
-	}
-
-	f.Fuzz(func(t *testing.T, data []byte) {
-		if len(data) != width {
-			t.Skip()
-		}
-
-		var state1, state2 [width]byte
-		copy(state1[:], data)
-		copy(state2[:], data)
-		Permute1536(&state1)
-		permute1536Generic(&state2)
-
-		if got, want := state2[:], state1[:]; !bytes.Equal(got, want) {
-			t.Errorf("Permute1536-ASM(%x) = %x, want = %x", data, got, want)
 		}
 	})
 }

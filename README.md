@@ -14,7 +14,6 @@ architectures:
 * Simpira-512 V2
 * Simpira-768 V2
 * Simpira-1024 V2
-* Simpira-1536 V2
 * Xoodoo
 
 ## ⚠️ Security Warning
@@ -42,7 +41,6 @@ BenchmarkSimpira256-14          174793746               34.35 ns/op      931.66 
 BenchmarkSimpira512-14          173078990               34.58 ns/op     1850.67 MB/s           0 B/op          0 allocs/op
 BenchmarkSimpira768-14          172720959               34.72 ns/op     2765.11 MB/s           0 B/op          0 allocs/op
 BenchmarkSimpira1024-14         137034960               43.77 ns/op     2924.63 MB/s           0 B/op          0 allocs/op
-BenchmarkSimpira1536-14         98830436                59.78 ns/op     3211.69 MB/s           0 B/op          0 allocs/op
 BenchmarkXoodoo-14              170471202               35.19 ns/op     1364.06 MB/s           0 B/op          0 allocs/op
 ```
 
@@ -64,7 +62,6 @@ BenchmarkSimpira256-4           28108608                42.56 ns/op      751.85 
 BenchmarkSimpira512-4           27781494                43.01 ns/op     1488.03 MB/s           0 B/op          0 allocs/op
 BenchmarkSimpira768-4           27188736                44.16 ns/op     2173.69 MB/s           0 B/op          0 allocs/op
 BenchmarkSimpira1024-4          20686183                57.99 ns/op     2207.26 MB/s           0 B/op          0 allocs/op
-BenchmarkSimpira1536-4          11535240               104.5 ns/op      1837.51 MB/s           0 B/op          0 allocs/op
 BenchmarkXoodoo-4               11924196               100.9 ns/op       475.85 MB/s           0 B/op          0 allocs/op
 ```
 

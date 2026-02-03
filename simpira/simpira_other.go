@@ -17,7 +17,3 @@ func permute768(state *[96]byte) {
 func permute1024(state *[128]byte) {
 	permute1024Generic(state)
 }
-
-func permute1536(state *[192]byte) {
-	permute1536Generic(state)
-}

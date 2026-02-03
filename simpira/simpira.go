@@ -5,7 +5,6 @@ const (
 	Permute512Width  = 64
 	Permute768Width  = 96
 	Permute1024Width = 128
-	Permute1536Width = 192
 )
 
 // Permute256 applies the Simpira v2 permutation to a 256-bit state (b=2).
@@ -26,9 +25,4 @@ func Permute768(state *[Permute768Width]byte) {
 // Permute1024 applies the Simpira v2 permutation to a 1024-bit state (b=8).
 func Permute1024(state *[Permute1024Width]byte) {
 	permute1024(state)
-}
-
-// Permute1536 applies the Simpira v2 permutation to a 1536-bit state (b=12).
-func Permute1536(state *[Permute1536Width]byte) {
-	permute1536(state)
 }

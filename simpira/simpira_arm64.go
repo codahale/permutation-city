@@ -17,7 +17,3 @@ func permute768(state *[96]byte)
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func permute1024(state *[128]byte)
-
-//go:noescape
-//goland:noinspection GoUnusedParameter
-func permute1536(state *[192]byte)
