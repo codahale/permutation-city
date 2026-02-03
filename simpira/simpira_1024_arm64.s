@@ -9,8 +9,7 @@
 	VORR src.B16, src.B16, t2.B16; \
 	AESE zero.B16, t2.B16; \
 	AESMC t2.B16, t2.B16; \
-	VEOR t1.B16, t2.B16, t2.B16; \
-	AESE zero.B16, t2.B16; \
+	AESE t1.B16, t2.B16; \
 	AESMC t2.B16, t2.B16; \
 	VEOR t2.B16, dst.B16, dst.B16; \
 	ADD $1, R1
