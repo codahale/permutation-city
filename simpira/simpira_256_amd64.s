@@ -9,8 +9,6 @@ TEXT ·permute256(SB), NOSPLIT, $0
 	MOVOU 0(DI), X0   // x0
 	MOVOU 16(DI), X1  // x1
 
-	PXOR X6, X6       // zero
-
 	MOVL $1, AX       // c = 1
 	MOVL $2, BX       // b = 2
 
@@ -25,8 +23,8 @@ loop2_unrolled:
 	PXOR ·constInc(SB), X4
 	MOVOU X0, X5
 	AESENC X4, X5
-	AESENC X6, X5
-	PXOR X5, X1
+	AESENC X1, X5
+	MOVOU X5, X1
 	INCL AX
 
 	// Round r+1 (odd): x0 ^= F(x1)
@@ -37,8 +35,8 @@ loop2_unrolled:
 	PXOR ·constInc(SB), X4
 	MOVOU X1, X5
 	AESENC X4, X5
-	AESENC X6, X5
-	PXOR X5, X0
+	AESENC X0, X5
+	MOVOU X5, X0
 	INCL AX
 
 	LOOP loop2_unrolled
@@ -51,8 +49,8 @@ loop2_unrolled:
 	PXOR ·constInc(SB), X4
 	MOVOU X0, X5
 	AESENC X4, X5
-	AESENC X6, X5
-	PXOR X5, X1
+	AESENC X1, X5
+	MOVOU X5, X1
 
 	MOVOU X0, 0(DI)
 	MOVOU X1, 16(DI)

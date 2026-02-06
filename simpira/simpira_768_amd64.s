@@ -13,34 +13,26 @@ TEXT ·permute768(SB), NOSPLIT, $0
 	MOVOU 64(DI), X4  // x4
 	MOVOU 80(DI), X5  // x5
 
-	PXOR X15, X15     // zero
 	MOVL $1, AX       // c = 1
 	MOVL $6, BX       // b = 6
-
-	// Helper macro for F function
-	// Uses X14, X13 as temps. X15 is zero.
-	// Updates AX (c).
-	// Usage: F_STEP(src, dst)
-#define F_STEP(src, dst) \
-	MOVL AX, DX; \
-	XORL BX, DX; \
-	MOVD DX, X14; \
-	PSHUFD $0, X14, X14; \
-	PXOR ·constInc(SB), X14; \
-	MOVOU src, X13; \
-	AESENC X14, X13; \
-	AESENC X15, X13; \
-	PXOR X13, dst; \
-	INCL AX
 
 	// ROUND_6_STEP: s0..s5 are registers mapped to s[r]..s[r+5]
 	// Op 1: s0 -> s1
 	// Op 2: s2 -> s5
 	// Op 3: s4 -> s3
 #define ROUND_6_STEP(s0, s1, s2, s3, s4, s5) \
-	F_STEP(s0, s1); \
-	F_STEP(s2, s5); \
-	F_STEP(s4, s3)
+	/* Consts */ \
+	MOVL AX, DX; XORL BX, DX; MOVD DX, X6; PSHUFD $0, X6, X6; PXOR ·constInc(SB), X6; INCL AX; \
+	MOVL AX, DX; XORL BX, DX; MOVD DX, X7; PSHUFD $0, X7, X7; PXOR ·constInc(SB), X7; INCL AX; \
+	MOVL AX, DX; XORL BX, DX; MOVD DX, X8; PSHUFD $0, X8, X8; PXOR ·constInc(SB), X8; INCL AX; \
+	/* AES 1 */ \
+	MOVOU s0, X9;  AESENC X6, X9; \
+	MOVOU s2, X10; AESENC X7, X10; \
+	MOVOU s4, X11; AESENC X8, X11; \
+	/* AES 2 + Mix */ \
+	AESENC s1, X9;  MOVOU X9, s1; \
+	AESENC s5, X10; MOVOU X10, s5; \
+	AESENC s3, X11; MOVOU X11, s3
 
 	// Reg mapping:
 	// REG[0]=X0, REG[1]=X1, REG[2]=X2, REG[3]=X5, REG[4]=X4, REG[5]=X3
