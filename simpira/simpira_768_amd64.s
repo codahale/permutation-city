@@ -71,3 +71,9 @@ TEXT ·permute768(SB), NOSPLIT, $0
 	MOVOU X4, 64(DI)
 	MOVOU X5, 80(DI)
 	RET
+
+GLOBL ·constInc(SB), (NOPTR+RODATA), $16
+DATA ·constInc+0(SB)/4, $0x00
+DATA ·constInc+4(SB)/4, $0x10
+DATA ·constInc+8(SB)/4, $0x20
+DATA ·constInc+12(SB)/4, $0x30
