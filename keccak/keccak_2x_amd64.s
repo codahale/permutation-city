@@ -67,8 +67,8 @@
 	VPTERNLOGQ $0xD2, X11, X10, X4; \
 	VMOVDQU	X4, (base+4)*16(R9)
 
-// func p1600x2(a, b *[200]byte)
-TEXT ·p1600x2(SB), $800-16
+// func p1600x2AVX512(a, b *[200]byte)
+TEXT ·p1600x2AVX512(SB), $800-16
 	MOVQ	a+0(FP), DI
 	MOVQ	b+8(FP), SI
 
