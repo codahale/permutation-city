@@ -72,6 +72,41 @@ func FuzzF1600(f *testing.F) {
 	})
 }
 
+func TestP1600x2(t *testing.T) {
+	// Two zero states should both match the known P1600 test vector.
+	var state1, state2 [200]byte
+	P1600x2(&state1, &state2)
+
+	want := "1786a7b938545e8e1ed059f2506acdd9351fa952c6e7b887c5e0e4cd67e09310455ad9f290ab33b0451adda8722fa7e09c2f6714aa8037c51d075100f547dd3ecc8a170c311da3b3a0aa5792a586b5799bf9b1b33d7c4abc93678ae66340876866250e2e33036c5cda30f0b90212aa9c9f7acf2b789a3b5f2379ae61e0c136e5ec873cb718b6e96dc28a9170f1d1be2ab724edda53bdab6a5ae12e2c6a41c1bfaf5209b936e0cfc6d76070dc17365045e47a9fc2b21156627a64302cdb7136d41ca02c22760dfdcf"
+	if got := hex.EncodeToString(state1[:]); got != want {
+		t.Errorf("P1600x2 state1(0*200) = %s, want = %s", got, want)
+	}
+	if got := hex.EncodeToString(state2[:]); got != want {
+		t.Errorf("P1600x2 state2(0*200) = %s, want = %s", got, want)
+	}
+
+	// Two different states should each match sequential P1600 results.
+	drbg := sha3.NewSHAKE128()
+	_, _ = drbg.Write([]byte("P1600x2-test"))
+
+	var a, b, aRef, bRef [200]byte
+	_, _ = drbg.Read(a[:])
+	_, _ = drbg.Read(b[:])
+	copy(aRef[:], a[:])
+	copy(bRef[:], b[:])
+
+	P1600x2(&a, &b)
+	f1600Generic(&aRef, 12)
+	f1600Generic(&bRef, 12)
+
+	if !bytes.Equal(a[:], aRef[:]) {
+		t.Errorf("P1600x2 state1 mismatch: got %x, want %x", a, aRef)
+	}
+	if !bytes.Equal(b[:], bRef[:]) {
+		t.Errorf("P1600x2 state2 mismatch: got %x, want %x", b, bRef)
+	}
+}
+
 func FuzzP1600(f *testing.F) {
 	drbg := sha3.NewSHAKE128()
 	_, _ = drbg.Write([]byte("Keccak-p[1600,12]"))
@@ -95,6 +130,39 @@ func FuzzP1600(f *testing.F) {
 
 		if !bytes.Equal(state1[:], state2[:]) {
 			t.Errorf("Keccak-p[1600,12](%x) = %x, want = %x", data, state1, state2)
+		}
+	})
+}
+
+func FuzzP1600x2(f *testing.F) {
+	drbg := sha3.NewSHAKE128()
+	_, _ = drbg.Write([]byte("Keccak-p[1600,12]x2"))
+	for range 10 {
+		var seed [400]byte
+		_, _ = drbg.Read(seed[:])
+		f.Add(seed[:])
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		if len(data) != 400 {
+			t.Skip()
+		}
+
+		var s1, s2, ref1, ref2 [200]byte
+		copy(s1[:], data[:200])
+		copy(s2[:], data[200:])
+		copy(ref1[:], s1[:])
+		copy(ref2[:], s2[:])
+
+		P1600x2(&s1, &s2)
+		f1600Generic(&ref1, 12)
+		f1600Generic(&ref2, 12)
+
+		if !bytes.Equal(s1[:], ref1[:]) {
+			t.Errorf("P1600x2 state1(%x) = %x, want = %x", data[:200], s1, ref1)
+		}
+		if !bytes.Equal(s2[:], ref2[:]) {
+			t.Errorf("P1600x2 state2(%x) = %x, want = %x", data[200:], s2, ref2)
 		}
 	})
 }

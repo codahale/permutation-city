@@ -13,3 +13,8 @@ func f1600(a *[200]byte) {
 func p1600(a *[200]byte) {
 	f1600Generic(a, 12)
 }
+
+func p1600x2(a, b *[200]byte) {
+	f1600Generic(a, 12)
+	f1600Generic(b, 12)
+}

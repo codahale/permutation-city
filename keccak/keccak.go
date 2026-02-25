@@ -13,3 +13,9 @@ func F1600(state *[200]byte) {
 func P1600(state *[200]byte) {
 	p1600(state)
 }
+
+// P1600x2 applies the Keccak-p[1600, 12] permutation to two independent
+// states in parallel.
+func P1600x2(state1, state2 *[200]byte) {
+	p1600x2(state1, state2)
+}
