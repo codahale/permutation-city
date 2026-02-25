@@ -66,12 +66,21 @@ func BenchmarkKeccakF1600(b *testing.B) {
 	}
 }
 
-func BenchmarkKeccakP1600X2(b *testing.B) {
+func BenchmarkKeccakP1600x2(b *testing.B) {
 	var stateA, stateB [200]byte
 	b.SetBytes(int64(len(stateA) + len(stateB)))
 	b.ReportAllocs()
 	for b.Loop() {
 		keccak.P1600x2(&stateA, &stateB)
+	}
+}
+
+func BenchmarkKeccakP1600x4(b *testing.B) {
+	var stateA, stateB, stateC, stateD [200]byte
+	b.SetBytes(int64(len(stateA) + len(stateB) + len(stateC) + len(stateD)))
+	b.ReportAllocs()
+	for b.Loop() {
+		keccak.P1600x4(&stateA, &stateB, &stateC, &stateD)
 	}
 }
 

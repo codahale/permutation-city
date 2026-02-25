@@ -18,3 +18,10 @@ func p1600x2(a, b *[200]byte) {
 	f1600Generic(a, 12)
 	f1600Generic(b, 12)
 }
+
+func p1600x4(a, b, c, d *[200]byte) {
+	f1600Generic(a, 12)
+	f1600Generic(b, 12)
+	f1600Generic(c, 12)
+	f1600Generic(d, 12)
+}
