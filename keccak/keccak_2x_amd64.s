@@ -4,7 +4,7 @@
 
 //go:build !purego
 
-// 2x parallel Keccak-p[1600, 12] using AMD64 SSE2.
+// 2x parallel Keccak-p[1600, 12] using AMD64 AVX512.
 //
 // Each XMM register holds [state1_lane_i | state2_lane_i] (two 64-bit lanes).
 // All Keccak operations (XOR, AND-NOT, rotation) operate independently on
@@ -31,67 +31,41 @@
 // ROT64 rotates an XMM register left by the given number of bits.
 // Clobbers X13.
 #define ROT64(reg, amount) \
-	MOVOU	reg, X13; \
-	PSLLQ	$amount, reg; \
-	PSRLQ	$(64-amount), X13; \
-	POR	X13, reg
+	VPROLQ	$amount, reg, reg
 
 // CHI computes the chi step for a row of 5 lanes.
 // Inputs: X0-X4 = bc0-bc4. Output base offset in dest buffer.
 // Clobbers X10-X12. Preserves X5-X9.
 #define CHI(base) \
-	MOVOU	X0, X10; \
-	MOVOU	X1, X11; \
-	/* out[0] = bc0 ^ (~bc1 & bc2) */ \
-	MOVOU	X1, X12; \
-	PANDN	X2, X12; \
-	PXOR	X0, X12; \
-	MOVOU	X12, (base+0)*16(R9); \
-	/* out[1] = bc1 ^ (~bc2 & bc3) */ \
-	MOVOU	X2, X12; \
-	PANDN	X3, X12; \
-	PXOR	X1, X12; \
-	MOVOU	X12, (base+1)*16(R9); \
-	/* out[2] = bc2 ^ (~bc3 & bc4) */ \
-	MOVOU	X3, X12; \
-	PANDN	X4, X12; \
-	PXOR	X2, X12; \
-	MOVOU	X12, (base+2)*16(R9); \
-	/* out[3] = bc3 ^ (~bc4 & bc0_saved) */ \
-	MOVOU	X4, X12; \
-	PANDN	X10, X12; \
-	PXOR	X3, X12; \
-	MOVOU	X12, (base+3)*16(R9); \
-	/* out[4] = bc4 ^ (~bc0_saved & bc1_saved) */ \
-	PANDN	X11, X10; \
-	PXOR	X4, X10; \
-	MOVOU	X10, (base+4)*16(R9)
+	VMOVDQU	X0, X10; \
+	VMOVDQU	X1, X11; \
+	VPTERNLOGQ $0xD2, X2, X1, X0; \
+	VMOVDQU	X0, (base+0)*16(R9); \
+	VPTERNLOGQ $0xD2, X3, X2, X1; \
+	VMOVDQU	X1, (base+1)*16(R9); \
+	VPTERNLOGQ $0xD2, X4, X3, X2; \
+	VMOVDQU	X2, (base+2)*16(R9); \
+	VPTERNLOGQ $0xD2, X10, X4, X3; \
+	VMOVDQU	X3, (base+3)*16(R9); \
+	VPTERNLOGQ $0xD2, X11, X10, X4; \
+	VMOVDQU	X4, (base+4)*16(R9)
 
 // CHI_IOTA computes chi + iota for the first row (output lane 0 gets XORed
 // with the round constant in X15).
 #define CHI_IOTA(base) \
-	MOVOU	X0, X10; \
-	MOVOU	X1, X11; \
-	MOVOU	X1, X12; \
-	PANDN	X2, X12; \
-	PXOR	X0, X12; \
-	PXOR	X15, X12; \
-	MOVOU	X12, (base+0)*16(R9); \
-	MOVOU	X2, X12; \
-	PANDN	X3, X12; \
-	PXOR	X1, X12; \
-	MOVOU	X12, (base+1)*16(R9); \
-	MOVOU	X3, X12; \
-	PANDN	X4, X12; \
-	PXOR	X2, X12; \
-	MOVOU	X12, (base+2)*16(R9); \
-	MOVOU	X4, X12; \
-	PANDN	X10, X12; \
-	PXOR	X3, X12; \
-	MOVOU	X12, (base+3)*16(R9); \
-	PANDN	X11, X10; \
-	PXOR	X4, X10; \
-	MOVOU	X10, (base+4)*16(R9)
+	VMOVDQU	X0, X10; \
+	VMOVDQU	X1, X11; \
+	VPTERNLOGQ $0xD2, X2, X1, X0; \
+	VPXOR	X15, X0, X0; \
+	VMOVDQU	X0, (base+0)*16(R9); \
+	VPTERNLOGQ $0xD2, X3, X2, X1; \
+	VMOVDQU	X1, (base+1)*16(R9); \
+	VPTERNLOGQ $0xD2, X4, X3, X2; \
+	VMOVDQU	X2, (base+2)*16(R9); \
+	VPTERNLOGQ $0xD2, X10, X4, X3; \
+	VMOVDQU	X3, (base+3)*16(R9); \
+	VPTERNLOGQ $0xD2, X11, X10, X4; \
+	VMOVDQU	X4, (base+4)*16(R9)
 
 // func p1600x2(a, b *[200]byte)
 TEXT ·p1600x2(SB), $800-16

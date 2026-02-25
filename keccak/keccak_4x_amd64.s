@@ -4,64 +4,43 @@
 
 //go:build !purego
 
-// 4x parallel Keccak-p[1600, 12] using AMD64 AVX2.
+// 4x parallel Keccak-p[1600, 12] using AMD64 AVX512.
 
 #include "textflag.h"
 
 // ROT64 rotates a YMM register left by the given number of bits.
 // Clobbers Y13.
 #define ROT64(reg, amount) \
-	VMOVDQU	reg, Y13; \
-	VPSLLQ	$amount, reg, reg; \
-	VPSRLQ	$(64-amount), Y13, Y13; \
-	VPOR	Y13, reg, reg
+	VPROLQ	$amount, reg, reg
 
 #define CHI(base) \
 	VMOVDQU	Y0, Y10; \
 	VMOVDQU	Y1, Y11; \
-	VMOVDQU	Y1, Y12; \
-	VPANDN	Y2, Y12, Y12; \
-	VPXOR	Y0, Y12, Y12; \
-	VMOVDQU	Y12, (base+0)*32(R9); \
-	VMOVDQU	Y2, Y12; \
-	VPANDN	Y3, Y12, Y12; \
-	VPXOR	Y1, Y12, Y12; \
-	VMOVDQU	Y12, (base+1)*32(R9); \
-	VMOVDQU	Y3, Y12; \
-	VPANDN	Y4, Y12, Y12; \
-	VPXOR	Y2, Y12, Y12; \
-	VMOVDQU	Y12, (base+2)*32(R9); \
-	VMOVDQU	Y4, Y12; \
-	VPANDN	Y10, Y12, Y12; \
-	VPXOR	Y3, Y12, Y12; \
-	VMOVDQU	Y12, (base+3)*32(R9); \
-	VPANDN	Y11, Y10, Y10; \
-	VPXOR	Y4, Y10, Y10; \
-	VMOVDQU	Y10, (base+4)*32(R9)
+	VPTERNLOGQ $0xD2, Y2, Y1, Y0; \
+	VMOVDQU	Y0, (base+0)*32(R9); \
+	VPTERNLOGQ $0xD2, Y3, Y2, Y1; \
+	VMOVDQU	Y1, (base+1)*32(R9); \
+	VPTERNLOGQ $0xD2, Y4, Y3, Y2; \
+	VMOVDQU	Y2, (base+2)*32(R9); \
+	VPTERNLOGQ $0xD2, Y10, Y4, Y3; \
+	VMOVDQU	Y3, (base+3)*32(R9); \
+	VPTERNLOGQ $0xD2, Y11, Y10, Y4; \
+	VMOVDQU	Y4, (base+4)*32(R9)
 
 #define CHI_IOTA(base) \
 	VMOVDQU	Y0, Y10; \
 	VMOVDQU	Y1, Y11; \
-	VMOVDQU	Y1, Y12; \
-	VPANDN	Y2, Y12, Y12; \
-	VPXOR	Y0, Y12, Y12; \
-	VPXOR	Y15, Y12, Y12; \
-	VMOVDQU	Y12, (base+0)*32(R9); \
-	VMOVDQU	Y2, Y12; \
-	VPANDN	Y3, Y12, Y12; \
-	VPXOR	Y1, Y12, Y12; \
-	VMOVDQU	Y12, (base+1)*32(R9); \
-	VMOVDQU	Y3, Y12; \
-	VPANDN	Y4, Y12, Y12; \
-	VPXOR	Y2, Y12, Y12; \
-	VMOVDQU	Y12, (base+2)*32(R9); \
-	VMOVDQU	Y4, Y12; \
-	VPANDN	Y10, Y12, Y12; \
-	VPXOR	Y3, Y12, Y12; \
-	VMOVDQU	Y12, (base+3)*32(R9); \
-	VPANDN	Y11, Y10, Y10; \
-	VPXOR	Y4, Y10, Y10; \
-	VMOVDQU	Y10, (base+4)*32(R9)
+	VPTERNLOGQ $0xD2, Y2, Y1, Y0; \
+	VPXOR	Y15, Y0, Y0; \
+	VMOVDQU	Y0, (base+0)*32(R9); \
+	VPTERNLOGQ $0xD2, Y3, Y2, Y1; \
+	VMOVDQU	Y1, (base+1)*32(R9); \
+	VPTERNLOGQ $0xD2, Y4, Y3, Y2; \
+	VMOVDQU	Y2, (base+2)*32(R9); \
+	VPTERNLOGQ $0xD2, Y10, Y4, Y3; \
+	VMOVDQU	Y3, (base+3)*32(R9); \
+	VPTERNLOGQ $0xD2, Y11, Y10, Y4; \
+	VMOVDQU	Y4, (base+4)*32(R9)
 
 // func p1600x4(a, b, c, d *[200]byte)
 TEXT ·p1600x4(SB), $1600-32
