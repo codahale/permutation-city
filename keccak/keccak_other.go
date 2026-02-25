@@ -14,14 +14,14 @@ func p1600(a *[200]byte) {
 	f1600Generic(a, 12)
 }
 
-func p1600x2(a, b *[200]byte) {
-	f1600Generic(a, 12)
-	f1600Generic(b, 12)
+func P1600x2(state1, state2 *[200]byte) {
+	f1600Generic(state1, 12)
+	f1600Generic(state2, 12)
 }
 
-func p1600x4(a, b, c, d *[200]byte) {
-	f1600Generic(a, 12)
-	f1600Generic(b, 12)
-	f1600Generic(c, 12)
-	f1600Generic(d, 12)
+func P1600x4(state1, state2, state3, state4 *[200]byte) {
+	f1600Generic(state1, 12)
+	f1600Generic(state2, 12)
+	f1600Generic(state3, 12)
+	f1600Generic(state4, 12)
 }

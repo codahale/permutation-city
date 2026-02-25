@@ -4,39 +4,12 @@
 
 //go:build !purego
 
-// 2x parallel Keccak-p[1600, 12] using AMD64 AVX512.
-//
-// Each XMM register holds [state1_lane_i | state2_lane_i] (two 64-bit lanes).
-// All Keccak operations (XOR, AND-NOT, rotation) operate independently on
-// each 64-bit half, so SIMD parallelism is free.
-//
-// Stack layout: two 400-byte ping-pong buffers (25 lanes × 16 bytes × 2).
-// Register allocation:
-//   X0-X4:   bc0-bc4 (per-group scratch)
-//   X5-X9:   d0-d4 (theta diffusion, persistent per round)
-//   X10-X12: chi scratch
-//   X13:     rotation scratch
-//   X14:     spare
-//   X15:     round constant
-//
-//   DI: state1 pointer (preserved)
-//   SI: state2 pointer (preserved)
-//   R8: source buffer base
-//   R9: destination buffer base
-//   R10: round counter
-//   R11: round constants pointer
-
 #include "textflag.h"
 
-// ROT64 rotates an XMM register left by the given number of bits.
-// Clobbers X13.
-#define ROT64(reg, amount) \
+#define ROT64_AVX512(reg, amount) \
 	VPROLQ	$amount, reg, reg
 
-// CHI computes the chi step for a row of 5 lanes.
-// Inputs: X0-X4 = bc0-bc4. Output base offset in dest buffer.
-// Clobbers X10-X12. Preserves X5-X9.
-#define CHI(base) \
+#define CHI_AVX512(base) \
 	VMOVDQU	X0, X10; \
 	VMOVDQU	X1, X11; \
 	VPTERNLOGQ $0xD2, X2, X1, X0; \
@@ -50,9 +23,7 @@
 	VPTERNLOGQ $0xD2, X11, X10, X4; \
 	VMOVDQU	X4, (base+4)*16(R9)
 
-// CHI_IOTA computes chi + iota for the first row (output lane 0 gets XORed
-// with the round constant in X15).
-#define CHI_IOTA(base) \
+#define CHI_IOTA_AVX512(base) \
 	VMOVDQU	X0, X10; \
 	VMOVDQU	X1, X11; \
 	VPTERNLOGQ $0xD2, X2, X1, X0; \
@@ -67,8 +38,419 @@
 	VPTERNLOGQ $0xD2, X11, X10, X4; \
 	VMOVDQU	X4, (base+4)*16(R9)
 
-// func p1600x2AVX512(a, b *[200]byte)
 TEXT ·p1600x2AVX512(SB), $800-16
+	MOVQ	a+0(FP), DI
+	MOVQ	b+8(FP), SI
+	VMOVQ	(DI), X0
+	VMOVQ	(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 0*16(SP)
+	VMOVQ	8(DI), X0
+	VMOVQ	8(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 1*16(SP)
+	VMOVQ	16(DI), X0
+	VMOVQ	16(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 2*16(SP)
+	VMOVQ	24(DI), X0
+	VMOVQ	24(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 3*16(SP)
+	VMOVQ	32(DI), X0
+	VMOVQ	32(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 4*16(SP)
+	VMOVQ	40(DI), X0
+	VMOVQ	40(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 5*16(SP)
+	VMOVQ	48(DI), X0
+	VMOVQ	48(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 6*16(SP)
+	VMOVQ	56(DI), X0
+	VMOVQ	56(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 7*16(SP)
+	VMOVQ	64(DI), X0
+	VMOVQ	64(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 8*16(SP)
+	VMOVQ	72(DI), X0
+	VMOVQ	72(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 9*16(SP)
+	VMOVQ	80(DI), X0
+	VMOVQ	80(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 10*16(SP)
+	VMOVQ	88(DI), X0
+	VMOVQ	88(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 11*16(SP)
+	VMOVQ	96(DI), X0
+	VMOVQ	96(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 12*16(SP)
+	VMOVQ	104(DI), X0
+	VMOVQ	104(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 13*16(SP)
+	VMOVQ	112(DI), X0
+	VMOVQ	112(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 14*16(SP)
+	VMOVQ	120(DI), X0
+	VMOVQ	120(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 15*16(SP)
+	VMOVQ	128(DI), X0
+	VMOVQ	128(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 16*16(SP)
+	VMOVQ	136(DI), X0
+	VMOVQ	136(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 17*16(SP)
+	VMOVQ	144(DI), X0
+	VMOVQ	144(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 18*16(SP)
+	VMOVQ	152(DI), X0
+	VMOVQ	152(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 19*16(SP)
+	VMOVQ	160(DI), X0
+	VMOVQ	160(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 20*16(SP)
+	VMOVQ	168(DI), X0
+	VMOVQ	168(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 21*16(SP)
+	VMOVQ	176(DI), X0
+	VMOVQ	176(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 22*16(SP)
+	VMOVQ	184(DI), X0
+	VMOVQ	184(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 23*16(SP)
+	VMOVQ	192(DI), X0
+	VMOVQ	192(SI), X1
+	VPUNPCKLQDQ	X1, X0, X0
+	VMOVDQU	X0, 24*16(SP)
+	LEAQ	0(SP), R8
+	LEAQ	400(SP), R9
+	LEAQ	round_consts_2x<>+192(SB), R11
+	MOVQ	$12, R10
+round_loop:
+	VMOVDQU	0*16(R8), X0
+	VMOVDQU	5*16(R8), X14
+	VPXOR	X14, X0, X0
+	VMOVDQU	10*16(R8), X14
+	VPXOR	X14, X0, X0
+	VMOVDQU	15*16(R8), X14
+	VPXOR	X14, X0, X0
+	VMOVDQU	20*16(R8), X14
+	VPXOR	X14, X0, X0
+	VMOVDQU	1*16(R8), X1
+	VMOVDQU	6*16(R8), X14
+	VPXOR	X14, X1, X1
+	VMOVDQU	11*16(R8), X14
+	VPXOR	X14, X1, X1
+	VMOVDQU	16*16(R8), X14
+	VPXOR	X14, X1, X1
+	VMOVDQU	21*16(R8), X14
+	VPXOR	X14, X1, X1
+	VMOVDQU	2*16(R8), X2
+	VMOVDQU	7*16(R8), X14
+	VPXOR	X14, X2, X2
+	VMOVDQU	12*16(R8), X14
+	VPXOR	X14, X2, X2
+	VMOVDQU	17*16(R8), X14
+	VPXOR	X14, X2, X2
+	VMOVDQU	22*16(R8), X14
+	VPXOR	X14, X2, X2
+	VMOVDQU	3*16(R8), X3
+	VMOVDQU	8*16(R8), X14
+	VPXOR	X14, X3, X3
+	VMOVDQU	13*16(R8), X14
+	VPXOR	X14, X3, X3
+	VMOVDQU	18*16(R8), X14
+	VPXOR	X14, X3, X3
+	VMOVDQU	23*16(R8), X14
+	VPXOR	X14, X3, X3
+	VMOVDQU	4*16(R8), X4
+	VMOVDQU	9*16(R8), X14
+	VPXOR	X14, X4, X4
+	VMOVDQU	14*16(R8), X14
+	VPXOR	X14, X4, X4
+	VMOVDQU	19*16(R8), X14
+	VPXOR	X14, X4, X4
+	VMOVDQU	24*16(R8), X14
+	VPXOR	X14, X4, X4
+	VMOVDQU	X1, X5
+	ROT64_AVX512(X5, 1)
+	VPXOR	X4, X5, X5
+	VMOVDQU	X2, X6
+	ROT64_AVX512(X6, 1)
+	VPXOR	X0, X6, X6
+	VMOVDQU	X3, X7
+	ROT64_AVX512(X7, 1)
+	VPXOR	X1, X7, X7
+	VMOVDQU	X4, X8
+	ROT64_AVX512(X8, 1)
+	VPXOR	X2, X8, X8
+	VMOVDQU	X0, X9
+	ROT64_AVX512(X9, 1)
+	VPXOR	X3, X9, X9
+	VMOVDQU	0*16(R8), X0
+	VPXOR	X5, X0, X0
+	VMOVDQU	6*16(R8), X1
+	VPXOR	X6, X1, X1
+	ROT64_AVX512(X1, 44)
+	VMOVDQU	12*16(R8), X2
+	VPXOR	X7, X2, X2
+	ROT64_AVX512(X2, 43)
+	VMOVDQU	18*16(R8), X3
+	VPXOR	X8, X3, X3
+	ROT64_AVX512(X3, 21)
+	VMOVDQU	24*16(R8), X4
+	VPXOR	X9, X4, X4
+	ROT64_AVX512(X4, 14)
+	VMOVDQU	(R11), X15
+	CHI_IOTA_AVX512(0)
+	VMOVDQU	3*16(R8), X0
+	VPXOR	X8, X0, X0
+	ROT64_AVX512(X0, 28)
+	VMOVDQU	9*16(R8), X1
+	VPXOR	X9, X1, X1
+	ROT64_AVX512(X1, 20)
+	VMOVDQU	10*16(R8), X2
+	VPXOR	X5, X2, X2
+	ROT64_AVX512(X2, 3)
+	VMOVDQU	16*16(R8), X3
+	VPXOR	X6, X3, X3
+	ROT64_AVX512(X3, 45)
+	VMOVDQU	22*16(R8), X4
+	VPXOR	X7, X4, X4
+	ROT64_AVX512(X4, 61)
+	CHI_AVX512(5)
+	VMOVDQU	1*16(R8), X0
+	VPXOR	X6, X0, X0
+	ROT64_AVX512(X0, 1)
+	VMOVDQU	7*16(R8), X1
+	VPXOR	X7, X1, X1
+	ROT64_AVX512(X1, 6)
+	VMOVDQU	13*16(R8), X2
+	VPXOR	X8, X2, X2
+	ROT64_AVX512(X2, 25)
+	VMOVDQU	19*16(R8), X3
+	VPXOR	X9, X3, X3
+	ROT64_AVX512(X3, 8)
+	VMOVDQU	20*16(R8), X4
+	VPXOR	X5, X4, X4
+	ROT64_AVX512(X4, 18)
+	CHI_AVX512(10)
+	VMOVDQU	4*16(R8), X0
+	VPXOR	X9, X0, X0
+	ROT64_AVX512(X0, 27)
+	VMOVDQU	5*16(R8), X1
+	VPXOR	X5, X1, X1
+	ROT64_AVX512(X1, 36)
+	VMOVDQU	11*16(R8), X2
+	VPXOR	X6, X2, X2
+	ROT64_AVX512(X2, 10)
+	VMOVDQU	17*16(R8), X3
+	VPXOR	X7, X3, X3
+	ROT64_AVX512(X3, 15)
+	VMOVDQU	23*16(R8), X4
+	VPXOR	X8, X4, X4
+	ROT64_AVX512(X4, 56)
+	CHI_AVX512(15)
+	VMOVDQU	2*16(R8), X0
+	VPXOR	X7, X0, X0
+	ROT64_AVX512(X0, 62)
+	VMOVDQU	8*16(R8), X1
+	VPXOR	X8, X1, X1
+	ROT64_AVX512(X1, 55)
+	VMOVDQU	14*16(R8), X2
+	VPXOR	X9, X2, X2
+	ROT64_AVX512(X2, 39)
+	VMOVDQU	15*16(R8), X3
+	VPXOR	X5, X3, X3
+	ROT64_AVX512(X3, 41)
+	VMOVDQU	21*16(R8), X4
+	VPXOR	X6, X4, X4
+	ROT64_AVX512(X4, 2)
+	CHI_AVX512(20)
+	XCHGQ	R8, R9
+	ADDQ	$16, R11
+	SUBQ	$1, R10
+	JNZ	round_loop
+	VMOVDQU	0*16(R8), X0
+	VMOVQ	X0, (DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, (SI)
+	VMOVDQU	1*16(R8), X0
+	VMOVQ	X0, 8(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 8(SI)
+	VMOVDQU	2*16(R8), X0
+	VMOVQ	X0, 16(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 16(SI)
+	VMOVDQU	3*16(R8), X0
+	VMOVQ	X0, 24(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 24(SI)
+	VMOVDQU	4*16(R8), X0
+	VMOVQ	X0, 32(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 32(SI)
+	VMOVDQU	5*16(R8), X0
+	VMOVQ	X0, 40(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 40(SI)
+	VMOVDQU	6*16(R8), X0
+	VMOVQ	X0, 48(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 48(SI)
+	VMOVDQU	7*16(R8), X0
+	VMOVQ	X0, 56(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 56(SI)
+	VMOVDQU	8*16(R8), X0
+	VMOVQ	X0, 64(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 64(SI)
+	VMOVDQU	9*16(R8), X0
+	VMOVQ	X0, 72(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 72(SI)
+	VMOVDQU	10*16(R8), X0
+	VMOVQ	X0, 80(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 80(SI)
+	VMOVDQU	11*16(R8), X0
+	VMOVQ	X0, 88(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 88(SI)
+	VMOVDQU	12*16(R8), X0
+	VMOVQ	X0, 96(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 96(SI)
+	VMOVDQU	13*16(R8), X0
+	VMOVQ	X0, 104(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 104(SI)
+	VMOVDQU	14*16(R8), X0
+	VMOVQ	X0, 112(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 112(SI)
+	VMOVDQU	15*16(R8), X0
+	VMOVQ	X0, 120(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 120(SI)
+	VMOVDQU	16*16(R8), X0
+	VMOVQ	X0, 128(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 128(SI)
+	VMOVDQU	17*16(R8), X0
+	VMOVQ	X0, 136(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 136(SI)
+	VMOVDQU	18*16(R8), X0
+	VMOVQ	X0, 144(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 144(SI)
+	VMOVDQU	19*16(R8), X0
+	VMOVQ	X0, 152(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 152(SI)
+	VMOVDQU	20*16(R8), X0
+	VMOVQ	X0, 160(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 160(SI)
+	VMOVDQU	21*16(R8), X0
+	VMOVQ	X0, 168(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 168(SI)
+	VMOVDQU	22*16(R8), X0
+	VMOVQ	X0, 176(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 176(SI)
+	VMOVDQU	23*16(R8), X0
+	VMOVQ	X0, 184(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 184(SI)
+	VMOVDQU	24*16(R8), X0
+	VMOVQ	X0, 192(DI)
+	VPSRLDQ	$8, X0, X0
+	VMOVQ	X0, 192(SI)
+	RET
+
+#define ROT64_SSE2(reg, amount) \
+	MOVOU	reg, X13; \
+	PSLLQ	$amount, reg; \
+	PSRLQ	$(64-amount), X13; \
+	POR	X13, reg
+
+#define CHI_SSE2(base) \
+	MOVOU	X0, X10; \
+	MOVOU	X1, X11; \
+	/* out[0] = bc0 ^ (~bc1 & bc2) */ \
+	MOVOU	X1, X12; \
+	PANDN	X2, X12; \
+	PXOR	X0, X12; \
+	MOVOU	X12, (base+0)*16(R9); \
+	/* out[1] = bc1 ^ (~bc2 & bc3) */ \
+	MOVOU	X2, X12; \
+	PANDN	X3, X12; \
+	PXOR	X1, X12; \
+	MOVOU	X12, (base+1)*16(R9); \
+	/* out[2] = bc2 ^ (~bc3 & bc4) */ \
+	MOVOU	X3, X12; \
+	PANDN	X4, X12; \
+	PXOR	X2, X12; \
+	MOVOU	X12, (base+2)*16(R9); \
+	/* out[3] = bc3 ^ (~bc4 & bc0_saved) */ \
+	MOVOU	X4, X12; \
+	PANDN	X10, X12; \
+	PXOR	X3, X12; \
+	MOVOU	X12, (base+3)*16(R9); \
+	/* out[4] = bc4 ^ (~bc0_saved & bc1_saved) */ \
+	PANDN	X11, X10; \
+	PXOR	X4, X10; \
+	MOVOU	X10, (base+4)*16(R9)
+
+#define CHI_IOTA_SSE2(base) \
+	MOVOU	X0, X10; \
+	MOVOU	X1, X11; \
+	MOVOU	X1, X12; \
+	PANDN	X2, X12; \
+	PXOR	X0, X12; \
+	PXOR	X15, X12; \
+	MOVOU	X12, (base+0)*16(R9); \
+	MOVOU	X2, X12; \
+	PANDN	X3, X12; \
+	PXOR	X1, X12; \
+	MOVOU	X12, (base+1)*16(R9); \
+	MOVOU	X3, X12; \
+	PANDN	X4, X12; \
+	PXOR	X2, X12; \
+	MOVOU	X12, (base+2)*16(R9); \
+	MOVOU	X4, X12; \
+	PANDN	X10, X12; \
+	PXOR	X3, X12; \
+	MOVOU	X12, (base+3)*16(R9); \
+	PANDN	X11, X10; \
+	PXOR	X4, X10; \
+	MOVOU	X10, (base+4)*16(R9)
+
+TEXT ·p1600x2SSE2(SB), $800-16
 	MOVQ	a+0(FP), DI
 	MOVQ	b+8(FP), SI
 
@@ -266,27 +648,27 @@ round_loop:
 	// Diffusion: D[x] = C[(x-1)%5] ^ ROL64(C[(x+1)%5], 1)
 	// D[0] = C[4] ^ ROL64(C[1], 1)
 	MOVOU	X1, X5
-	ROT64(X5, 1)
+	ROT64_SSE2(X5, 1)
 	PXOR	X4, X5              // X5 = D[0]
 
 	// D[1] = C[0] ^ ROL64(C[2], 1)
 	MOVOU	X2, X6
-	ROT64(X6, 1)
+	ROT64_SSE2(X6, 1)
 	PXOR	X0, X6              // X6 = D[1]
 
 	// D[2] = C[1] ^ ROL64(C[3], 1)
 	MOVOU	X3, X7
-	ROT64(X7, 1)
+	ROT64_SSE2(X7, 1)
 	PXOR	X1, X7              // X7 = D[2]
 
 	// D[3] = C[2] ^ ROL64(C[4], 1)
 	MOVOU	X4, X8
-	ROT64(X8, 1)
+	ROT64_SSE2(X8, 1)
 	PXOR	X2, X8              // X8 = D[3]
 
 	// D[4] = C[3] ^ ROL64(C[0], 1)
 	MOVOU	X0, X9
-	ROT64(X9, 1)
+	ROT64_SSE2(X9, 1)
 	PXOR	X3, X9              // X9 = D[4]
 
 	// === RHO + PI + CHI + IOTA ===
@@ -307,22 +689,22 @@ round_loop:
 
 	MOVOU	6*16(R8), X1
 	PXOR	X6, X1
-	ROT64(X1, 44)
+	ROT64_SSE2(X1, 44)
 
 	MOVOU	12*16(R8), X2
 	PXOR	X7, X2
-	ROT64(X2, 43)
+	ROT64_SSE2(X2, 43)
 
 	MOVOU	18*16(R8), X3
 	PXOR	X8, X3
-	ROT64(X3, 21)
+	ROT64_SSE2(X3, 21)
 
 	MOVOU	24*16(R8), X4
 	PXOR	X9, X4
-	ROT64(X4, 14)
+	ROT64_SSE2(X4, 14)
 
 	MOVOU	(R11), X15          // load round constant
-	CHI_IOTA(0)
+	CHI_IOTA_SSE2(0)
 
 	// Output row 1 (lanes 5-9):
 	//   bc0: src[3]  ^ d3, rot 28
@@ -333,25 +715,25 @@ round_loop:
 
 	MOVOU	3*16(R8), X0
 	PXOR	X8, X0
-	ROT64(X0, 28)
+	ROT64_SSE2(X0, 28)
 
 	MOVOU	9*16(R8), X1
 	PXOR	X9, X1
-	ROT64(X1, 20)
+	ROT64_SSE2(X1, 20)
 
 	MOVOU	10*16(R8), X2
 	PXOR	X5, X2
-	ROT64(X2, 3)
+	ROT64_SSE2(X2, 3)
 
 	MOVOU	16*16(R8), X3
 	PXOR	X6, X3
-	ROT64(X3, 45)
+	ROT64_SSE2(X3, 45)
 
 	MOVOU	22*16(R8), X4
 	PXOR	X7, X4
-	ROT64(X4, 61)
+	ROT64_SSE2(X4, 61)
 
-	CHI(5)
+	CHI_SSE2(5)
 
 	// Output row 2 (lanes 10-14):
 	//   bc0: src[1]  ^ d1, rot 1
@@ -362,25 +744,25 @@ round_loop:
 
 	MOVOU	1*16(R8), X0
 	PXOR	X6, X0
-	ROT64(X0, 1)
+	ROT64_SSE2(X0, 1)
 
 	MOVOU	7*16(R8), X1
 	PXOR	X7, X1
-	ROT64(X1, 6)
+	ROT64_SSE2(X1, 6)
 
 	MOVOU	13*16(R8), X2
 	PXOR	X8, X2
-	ROT64(X2, 25)
+	ROT64_SSE2(X2, 25)
 
 	MOVOU	19*16(R8), X3
 	PXOR	X9, X3
-	ROT64(X3, 8)
+	ROT64_SSE2(X3, 8)
 
 	MOVOU	20*16(R8), X4
 	PXOR	X5, X4
-	ROT64(X4, 18)
+	ROT64_SSE2(X4, 18)
 
-	CHI(10)
+	CHI_SSE2(10)
 
 	// Output row 3 (lanes 15-19):
 	//   bc0: src[4]  ^ d4, rot 27
@@ -391,25 +773,25 @@ round_loop:
 
 	MOVOU	4*16(R8), X0
 	PXOR	X9, X0
-	ROT64(X0, 27)
+	ROT64_SSE2(X0, 27)
 
 	MOVOU	5*16(R8), X1
 	PXOR	X5, X1
-	ROT64(X1, 36)
+	ROT64_SSE2(X1, 36)
 
 	MOVOU	11*16(R8), X2
 	PXOR	X6, X2
-	ROT64(X2, 10)
+	ROT64_SSE2(X2, 10)
 
 	MOVOU	17*16(R8), X3
 	PXOR	X7, X3
-	ROT64(X3, 15)
+	ROT64_SSE2(X3, 15)
 
 	MOVOU	23*16(R8), X4
 	PXOR	X8, X4
-	ROT64(X4, 56)
+	ROT64_SSE2(X4, 56)
 
-	CHI(15)
+	CHI_SSE2(15)
 
 	// Output row 4 (lanes 20-24):
 	//   bc0: src[2]  ^ d2, rot 62
@@ -420,25 +802,25 @@ round_loop:
 
 	MOVOU	2*16(R8), X0
 	PXOR	X7, X0
-	ROT64(X0, 62)
+	ROT64_SSE2(X0, 62)
 
 	MOVOU	8*16(R8), X1
 	PXOR	X8, X1
-	ROT64(X1, 55)
+	ROT64_SSE2(X1, 55)
 
 	MOVOU	14*16(R8), X2
 	PXOR	X9, X2
-	ROT64(X2, 39)
+	ROT64_SSE2(X2, 39)
 
 	MOVOU	15*16(R8), X3
 	PXOR	X5, X3
-	ROT64(X3, 41)
+	ROT64_SSE2(X3, 41)
 
 	MOVOU	21*16(R8), X4
 	PXOR	X6, X4
-	ROT64(X4, 2)
+	ROT64_SSE2(X4, 2)
 
-	CHI(20)
+	CHI_SSE2(20)
 
 	// Swap source/dest and advance round constant
 	XCHGQ	R8, R9
@@ -576,9 +958,6 @@ round_loop:
 
 	RET
 
-// Round constants for 2x: each 64-bit constant duplicated in both halves
-// of a 128-bit entry. 24 entries × 16 bytes = 384 bytes.
-// p1600x2 starts at offset 192 (round 12).
 DATA	round_consts_2x<>+0x000(SB)/8, $0x0000000000000001
 DATA	round_consts_2x<>+0x008(SB)/8, $0x0000000000000001
 DATA	round_consts_2x<>+0x010(SB)/8, $0x0000000000008082

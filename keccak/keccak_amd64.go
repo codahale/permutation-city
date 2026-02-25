@@ -22,24 +22,31 @@ func p1600x2AVX512(a, b *[200]byte)
 
 //go:noescape
 //goland:noinspection GoUnusedParameter
+func p1600x2SSE2(a, b *[200]byte)
+
+//go:noescape
+//goland:noinspection GoUnusedParameter
 func p1600x4AVX512(a, b, c, d *[200]byte)
 
-func p1600x2(a, b *[200]byte) {
+//go:noescape
+//goland:noinspection GoUnusedParameter
+func p1600x4AVX2(a, b, c, d *[200]byte)
+
+func P1600x2(state1, state2 *[200]byte) {
 	if cpu.X86.HasAVX512F && cpu.X86.HasAVX512VL {
-		p1600x2AVX512(a, b)
+		p1600x2AVX512(state1, state2)
 	} else {
-		f1600Generic(a, 12)
-		f1600Generic(b, 12)
+		p1600x2SSE2(state1, state2)
 	}
 }
 
-func p1600x4(a, b, c, d *[200]byte) {
+func P1600x4(state1, state2, state3, state4 *[200]byte) {
 	if cpu.X86.HasAVX512F && cpu.X86.HasAVX512VL {
-		p1600x4AVX512(a, b, c, d)
+		p1600x4AVX512(state1, state2, state3, state4)
+	} else if cpu.X86.HasAVX2 {
+		p1600x4AVX2(state1, state2, state3, state4)
 	} else {
-		f1600Generic(a, 12)
-		f1600Generic(b, 12)
-		f1600Generic(c, 12)
-		f1600Generic(d, 12)
+		p1600x2SSE2(state1, state2)
+		p1600x2SSE2(state3, state4)
 	}
 }

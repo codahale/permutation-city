@@ -18,7 +18,11 @@ func p1600(a *[200]byte)
 //goland:noinspection GoUnusedParameter
 func p1600x2(a, b *[200]byte)
 
-func p1600x4(a, b, c, d *[200]byte) {
-	p1600x2(a, b)
-	p1600x2(c, d)
+func P1600x2(state1, state2 *[200]byte) {
+	p1600x2(state1, state2)
+}
+
+func P1600x4(state1, state2, state3, state4 *[200]byte) {
+	p1600x2(state1, state2)
+	p1600x2(state3, state4)
 }
