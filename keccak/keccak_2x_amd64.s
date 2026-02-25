@@ -236,35 +236,58 @@ TEXT ·p1600x2(SB), $800-16
 round_loop:
 	// === THETA ===
 	// Column parities: C[x] = lane[x] ^ lane[x+5] ^ lane[x+10] ^ lane[x+15] ^ lane[x+20]
+	// Note: all memory loads use MOVOU (unaligned) because the stack
+	// buffer may not be 16-byte aligned. PXOR with a memory operand
+	// requires 16-byte alignment and would fault on real AMD64 hardware.
 	MOVOU	0*16(R8), X0
-	PXOR	5*16(R8), X0
-	PXOR	10*16(R8), X0
-	PXOR	15*16(R8), X0
-	PXOR	20*16(R8), X0       // X0 = C[0]
+	MOVOU	5*16(R8), X14
+	PXOR	X14, X0
+	MOVOU	10*16(R8), X14
+	PXOR	X14, X0
+	MOVOU	15*16(R8), X14
+	PXOR	X14, X0
+	MOVOU	20*16(R8), X14
+	PXOR	X14, X0             // X0 = C[0]
 
 	MOVOU	1*16(R8), X1
-	PXOR	6*16(R8), X1
-	PXOR	11*16(R8), X1
-	PXOR	16*16(R8), X1
-	PXOR	21*16(R8), X1       // X1 = C[1]
+	MOVOU	6*16(R8), X14
+	PXOR	X14, X1
+	MOVOU	11*16(R8), X14
+	PXOR	X14, X1
+	MOVOU	16*16(R8), X14
+	PXOR	X14, X1
+	MOVOU	21*16(R8), X14
+	PXOR	X14, X1             // X1 = C[1]
 
 	MOVOU	2*16(R8), X2
-	PXOR	7*16(R8), X2
-	PXOR	12*16(R8), X2
-	PXOR	17*16(R8), X2
-	PXOR	22*16(R8), X2       // X2 = C[2]
+	MOVOU	7*16(R8), X14
+	PXOR	X14, X2
+	MOVOU	12*16(R8), X14
+	PXOR	X14, X2
+	MOVOU	17*16(R8), X14
+	PXOR	X14, X2
+	MOVOU	22*16(R8), X14
+	PXOR	X14, X2             // X2 = C[2]
 
 	MOVOU	3*16(R8), X3
-	PXOR	8*16(R8), X3
-	PXOR	13*16(R8), X3
-	PXOR	18*16(R8), X3
-	PXOR	23*16(R8), X3       // X3 = C[3]
+	MOVOU	8*16(R8), X14
+	PXOR	X14, X3
+	MOVOU	13*16(R8), X14
+	PXOR	X14, X3
+	MOVOU	18*16(R8), X14
+	PXOR	X14, X3
+	MOVOU	23*16(R8), X14
+	PXOR	X14, X3             // X3 = C[3]
 
 	MOVOU	4*16(R8), X4
-	PXOR	9*16(R8), X4
-	PXOR	14*16(R8), X4
-	PXOR	19*16(R8), X4
-	PXOR	24*16(R8), X4       // X4 = C[4]
+	MOVOU	9*16(R8), X14
+	PXOR	X14, X4
+	MOVOU	14*16(R8), X14
+	PXOR	X14, X4
+	MOVOU	19*16(R8), X14
+	PXOR	X14, X4
+	MOVOU	24*16(R8), X14
+	PXOR	X14, X4             // X4 = C[4]
 
 	// Diffusion: D[x] = C[(x-1)%5] ^ ROL64(C[(x+1)%5], 1)
 	// D[0] = C[4] ^ ROL64(C[1], 1)
