@@ -4,6 +4,9 @@
 
 package keccak
 
+// Lanes is the number of permutations the host machine can perform in parallel.
+var Lanes = 1
+
 // F1600 applies the Keccak-f[1600] permutation to the state (24 rounds).
 func F1600(state *[200]byte) {
 	f1600(state)

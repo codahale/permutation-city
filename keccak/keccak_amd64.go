@@ -50,3 +50,10 @@ func P1600x4(state1, state2, state3, state4 *[200]byte) {
 		p1600x2SSE2(state3, state4)
 	}
 }
+
+func init() {
+	if cpu.X86.HasAVX512F && cpu.X86.HasAVX512VL {
+		Lanes = 4
+	}
+	Lanes = 2
+}

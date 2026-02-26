@@ -26,3 +26,7 @@ func P1600x4(state1, state2, state3, state4 *[200]byte) {
 	p1600x2(state1, state2)
 	p1600x2(state3, state4)
 }
+
+func init() {
+	Lanes = 2
+}
