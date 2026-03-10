@@ -2,4 +2,4 @@ module github.com/codahale/permutation-city
 
 go 1.25.6
 
-require golang.org/x/sys v0.41.0
+require golang.org/x/sys v0.42.0
